@@ -1,0 +1,245 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spelling Game for Rachel</title>
+  <!-- Include annyang from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --primary-hover: #0056b3;
+      --background: #f4f4f4;
+      --text-color: #333;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--background);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      width: 90%;
+      max-width: 600px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    h1 {
+      color: var(--text-color);
+      font-size: 24px;
+    }
+    .word {
+      font-size: 48px;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin: 20px 0;
+      display: block;
+    }
+    button {
+      background-color: var(--primary-color);
+      color: #fff;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 10px;
+      width: 80%;
+      max-width: 300px;
+    }
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    #result {
+      font-size: 24px;
+      margin-top: 10px;
+    }
+    #timer {
+      font-size: 20px;
+      margin-top: 10px;
+      color: var(--text-color);
+    }
+    .celebration {
+      display: none;
+      font-size: 30px;
+      font-weight: bold;
+      color: green;
+      animation: pop 0.5s ease-in-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(1); opacity: 0; }
+      50% { transform: scale(1.5); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Spelling Game for Rachel</h1>
+    <p id="wordDisplay">Click "Start" to hear a word.</p>
+    <p id="timer" style="display: none;">Time remaining: 10s</p>
+    <button id="startButton">Start</button>
+    <button id="checkButton" style="display: none;">Check Answer</button>
+    <p id="result" aria-live="polite"></p>
+    <p id="score">Score: 0</p>
+    <p id="celebration" class="celebration">🎉 Great job, Rachel! 🎉</p>
+  </div>
+  <audio id="cheer" src="https://www.fesliyanstudios.com/play-mp3/4380"></audio>
+  <script>
+    // Ensure annyang is available
+    if (!annyang) {
+      alert("Sorry, your browser does not support speech recognition via annyang.");
+    }
+
+
+    // Global variables
+    const words = ["cat", "dog", "sun", "moon", "star", "tree", "house", "car", "boat", "ball"];
+    let currentWord = "";
+    let score = 0;
+    let spokenAnswer = "";
+    let timerInterval = null;
+    let timeRemaining = 10;
+    let hasChecked = false;
+
+
+    // Setup annyang command to capture any spoken phrase
+    if (annyang) {
+      const commands = {
+        "*answer": function(answer) {
+          // Capture the answer; this will update as Rachel speaks
+          spokenAnswer = answer.toLowerCase().trim();
+        }
+      };
+      annyang.addCommands(commands);
+    }
+
+
+    // Initialize event listeners once DOM is loaded
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("startButton").addEventListener("click", startGame);
+      document.getElementById("checkButton").addEventListener("click", checkAnswer);
+    });
+
+
+    // Start a new round: select word, announce it, then start listening and timer
+    function startGame() {
+      // Reset for new round
+      hasChecked = false;
+      spokenAnswer = "";
+      timeRemaining = 10;
+      clearInterval(timerInterval);
+      document.getElementById("result").innerText = "";
+      document.getElementById("timer").style.display = "none";
+      document.getElementById("checkButton").style.display = "none";
+      document.getElementById("celebration").style.display = "none";
+
+
+      // Choose a random word
+      currentWord = words[Math.floor(Math.random() * words.length)];
+      document.getElementById("wordDisplay").innerHTML =
+        `Rachel, spell this word: <span class="word">${currentWord}</span>`;
+
+
+      // Speak the word using SpeechSynthesis
+      speakWord(`Rachel, spell the word ${currentWord}`);
+
+
+      // Start listening and timer after a short delay to allow the word to be pronounced
+      setTimeout(startListeningAndTimer, 1000);
+    }
+
+
+    // Use SpeechSynthesis to speak a given text
+    function speakWord(text) {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "en-US";
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.warn("Speech synthesis not supported in this browser.");
+      }
+    }
+
+
+    // Start the annyang listener and a 10-second countdown timer
+    function startListeningAndTimer() {
+      // Display timer and check answer button
+      document.getElementById("timer").style.display = "block";
+      document.getElementById("checkButton").style.display = "inline-block";
+      updateTimerDisplay();
+
+
+      // Start annyang listening (if not already started)
+      if (annyang) {
+        annyang.start({ autoRestart: false, continuous: false });
+      }
+
+
+      // Start countdown timer
+      timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        if (timeRemaining <= 0) {
+          checkAnswer();
+        }
+      }, 1000);
+    }
+
+
+    // Update the countdown timer display
+    function updateTimerDisplay() {
+      document.getElementById("timer").innerText = "Time remaining: " + timeRemaining + "s";
+    }
+
+
+    // Check the captured spoken answer against the expected word
+    function checkAnswer() {
+      if (hasChecked) return;
+      hasChecked = true;
+
+
+      // Stop listening and clear the timer
+      if (annyang) {
+        annyang.abort();
+      }
+      clearInterval(timerInterval);
+      document.getElementById("timer").style.display = "none";
+      document.getElementById("checkButton").style.display = "none";
+
+
+      // Evaluate the answer
+      if (spokenAnswer === currentWord) {
+        score++;
+        document.getElementById("result").innerText = "Great job, Rachel! That's correct!";
+        document.getElementById("score").innerText = "Score: " + score;
+        document.getElementById("celebration").style.display = "block";
+        document.getElementById("cheer").play();
+      } else if (spokenAnswer === "") {
+        document.getElementById("result").innerText = "I didn't catch that, Rachel. Try again!";
+        speakWord("I didn't catch that, Rachel. Try again!");
+      } else {
+        document.getElementById("result").innerText = "Almost! Try again, Rachel!";
+        speakWord(`Try again, Rachel! The word is ${currentWord}`);
+      }
+
+
+      // Start a new round after a brief pause
+      setTimeout(startGame, 3000);
+    }
+  </script>
+</body>
+</html>
