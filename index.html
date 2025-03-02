@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -64,7 +64,7 @@
       background-color: #ccc;
       cursor: not-allowed;
     }
-    #result {
+    #result, #debug {
       font-size: 24px;
       margin-top: 10px;
     }
@@ -95,6 +95,7 @@
     <button id="startButton">Start</button>
     <button id="checkButton" style="display: none;">Check Answer</button>
     <p id="result" aria-live="polite"></p>
+    <p id="debug" style="color: #555;"></p>
     <p id="score">Score: 0</p>
     <p id="celebration" class="celebration">🎉 Great job, Rachel! 🎉</p>
   </div>
@@ -105,7 +106,6 @@
       alert("Sorry, your browser does not support speech recognition via annyang.");
     }
 
-
     // Global variables
     const words = ["cat", "dog", "sun", "moon", "star", "tree", "house", "car", "boat", "ball"];
     let currentWord = "";
@@ -115,18 +115,18 @@
     let timeRemaining = 10;
     let hasChecked = false;
 
-
     // Setup annyang command to capture any spoken phrase
     if (annyang) {
       const commands = {
         "*answer": function(answer) {
-          // Capture the answer; this will update as Rachel speaks
           spokenAnswer = answer.toLowerCase().trim();
+          console.log("Captured answer:", spokenAnswer);
+          // Show the captured answer for debugging
+          document.getElementById("debug").innerText = "Heard: " + spokenAnswer;
         }
       };
       annyang.addCommands(commands);
     }
-
 
     // Initialize event listeners once DOM is loaded
     document.addEventListener("DOMContentLoaded", () => {
@@ -134,36 +134,29 @@
       document.getElementById("checkButton").addEventListener("click", checkAnswer);
     });
 
-
-    // Start a new round: select word, announce it, then start listening and timer
+    // Start a new round: choose word, announce it, then start listening and timer
     function startGame() {
-      // Reset for new round
       hasChecked = false;
       spokenAnswer = "";
       timeRemaining = 10;
       clearInterval(timerInterval);
       document.getElementById("result").innerText = "";
+      document.getElementById("debug").innerText = "";
       document.getElementById("timer").style.display = "none";
       document.getElementById("checkButton").style.display = "none";
       document.getElementById("celebration").style.display = "none";
 
-
-      // Choose a random word
       currentWord = words[Math.floor(Math.random() * words.length)];
       document.getElementById("wordDisplay").innerHTML =
         `Rachel, spell this word: <span class="word">${currentWord}</span>`;
 
-
-      // Speak the word using SpeechSynthesis
       speakWord(`Rachel, spell the word ${currentWord}`);
-
 
       // Start listening and timer after a short delay to allow the word to be pronounced
       setTimeout(startListeningAndTimer, 1000);
     }
 
-
-    // Use SpeechSynthesis to speak a given text
+    // Use SpeechSynthesis to speak text
     function speakWord(text) {
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
@@ -174,22 +167,17 @@
       }
     }
 
-
-    // Start the annyang listener and a 10-second countdown timer
+    // Start annyang listening and a 10-second countdown timer
     function startListeningAndTimer() {
-      // Display timer and check answer button
       document.getElementById("timer").style.display = "block";
       document.getElementById("checkButton").style.display = "inline-block";
       updateTimerDisplay();
 
-
-      // Start annyang listening (if not already started)
+      // Start annyang in continuous mode during the 10-second window
       if (annyang) {
-        annyang.start({ autoRestart: false, continuous: false });
+        annyang.start({ autoRestart: false, continuous: true });
       }
 
-
-      // Start countdown timer
       timerInterval = setInterval(() => {
         timeRemaining--;
         updateTimerDisplay();
@@ -199,20 +187,16 @@
       }, 1000);
     }
 
-
     // Update the countdown timer display
     function updateTimerDisplay() {
       document.getElementById("timer").innerText = "Time remaining: " + timeRemaining + "s";
     }
 
-
-    // Check the captured spoken answer against the expected word
+    // Check the captured spoken answer
     function checkAnswer() {
       if (hasChecked) return;
       hasChecked = true;
 
-
-      // Stop listening and clear the timer
       if (annyang) {
         annyang.abort();
       }
@@ -220,8 +204,10 @@
       document.getElementById("timer").style.display = "none";
       document.getElementById("checkButton").style.display = "none";
 
+      // Log the recognized answer for debugging
+      console.log("Checking answer. Recognized:", spokenAnswer, "Expected:", currentWord);
+      document.getElementById("debug").innerText += "\nFinal: " + spokenAnswer;
 
-      // Evaluate the answer
       if (spokenAnswer === currentWord) {
         score++;
         document.getElementById("result").innerText = "Great job, Rachel! That's correct!";
@@ -236,8 +222,6 @@
         speakWord(`Try again, Rachel! The word is ${currentWord}`);
       }
 
-
-      // Start a new round after a brief pause
       setTimeout(startGame, 3000);
     }
   </script>
