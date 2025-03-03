@@ -106,8 +106,15 @@
       alert("Sorry, your browser does not support speech recognition via annyang.");
     }
 
-    // Global variables
-    const words = ["cat", "dog", "sun", "moon", "star", "tree", "house", "car", "boat", "ball"];
+    // Expanded word list (over 50 words)
+    const words = [
+      "cat", "dog", "sun", "moon", "star", "tree", "house", "car", "boat", "ball",
+      "elephant", "giraffe", "kangaroo", "alligator", "butterfly", "dinosaur", "chocolate", "strawberry", "pineapple", "watermelon",
+      "computer", "keyboard", "notebook", "television", "microwave", "refrigerator", "bicycle", "motorcycle", "airplane", "helicopter",
+      "submarine", "astronaut", "galaxy", "universe", "planet", "comet", "asteroid", "volcano", "hurricane", "tornado",
+      "rainbow", "ocean", "mountain", "river", "forest", "desert", "canyon", "volleyball", "basketball", "baseball",
+      "soccer", "tennis", "guitar", "piano", "violin", "trumpet", "saxophone", "drums", "crocodile", "rhinoceros", "hippopotamus"
+    ];
     let currentWord = "";
     let score = 0;
     let spokenAnswer = "";
@@ -121,20 +128,19 @@
         "*answer": function(answer) {
           spokenAnswer = answer.toLowerCase().trim();
           console.log("Captured answer:", spokenAnswer);
-          // Show the captured answer for debugging
           document.getElementById("debug").innerText = "Heard: " + spokenAnswer;
         }
       };
       annyang.addCommands(commands);
     }
 
-    // Initialize event listeners once DOM is loaded
+    // Initialize event listeners after DOM load
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("startButton").addEventListener("click", startGame);
       document.getElementById("checkButton").addEventListener("click", checkAnswer);
     });
 
-    // Start a new round: choose word, announce it, then start listening and timer
+    // Start a new round: choose word, announce it, then wait for speech synthesis to finish before listening
     function startGame() {
       hasChecked = false;
       spokenAnswer = "";
@@ -150,24 +156,27 @@
       document.getElementById("wordDisplay").innerHTML =
         `Rachel, spell this word: <span class="word">${currentWord}</span>`;
 
-      speakWord(`Rachel, spell the word ${currentWord}`);
-
-      // Start listening and timer after a short delay to allow the word to be pronounced
-      setTimeout(startListeningAndTimer, 1000);
+      // Speak the word and use the onend callback to start listening
+      speakWord(`Rachel, spell the word ${currentWord}`, startListeningAndTimer);
     }
 
-    // Use SpeechSynthesis to speak text
-    function speakWord(text) {
+    // Use SpeechSynthesis to speak text, then call a callback on completion
+    function speakWord(text, callback) {
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "en-US";
+        utterance.onend = function() {
+          // Start listening after the word is fully spoken
+          if (callback) callback();
+        };
         window.speechSynthesis.speak(utterance);
       } else {
         console.warn("Speech synthesis not supported in this browser.");
+        if (callback) callback();
       }
     }
 
-    // Start annyang listening and a 10-second countdown timer
+    // Start the annyang listener and a 10-second countdown timer
     function startListeningAndTimer() {
       document.getElementById("timer").style.display = "block";
       document.getElementById("checkButton").style.display = "inline-block";
@@ -192,7 +201,7 @@
       document.getElementById("timer").innerText = "Time remaining: " + timeRemaining + "s";
     }
 
-    // Check the captured spoken answer
+    // Check the captured spoken answer against the target word
     function checkAnswer() {
       if (hasChecked) return;
       hasChecked = true;
@@ -204,7 +213,6 @@
       document.getElementById("timer").style.display = "none";
       document.getElementById("checkButton").style.display = "none";
 
-      // Log the recognized answer for debugging
       console.log("Checking answer. Recognized:", spokenAnswer, "Expected:", currentWord);
       document.getElementById("debug").innerText += "\nFinal: " + spokenAnswer;
 
