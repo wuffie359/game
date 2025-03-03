@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spelling Game for Rachel</title>
-  <!-- Include annyang from CDN -->
+  <title>Spelling Fun with Rachel!</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
   <style>
     :root {
@@ -89,32 +88,19 @@
 </head>
 <body>
   <div class="container">
-    <h1>Spelling Game for Rachel</h1>
-    <p id="wordDisplay">Click "Start" to hear a word.</p>
-    <p id="timer" style="display: none;">Time remaining: 10s</p>
+    <h1>Spelling Fun with Rachel!</h1>
+    <p id="wordDisplay">Click "Start" to play!</p>
+    <p id="timer" style="display: none;">Time: 10s</p>
     <button id="startButton">Start</button>
-    <button id="checkButton" style="display: none;">Check Answer</button>
+    <button id="checkButton" style="display: none;">Check</button>
     <p id="result" aria-live="polite"></p>
     <p id="debug" style="color: #555;"></p>
     <p id="score">Score: 0</p>
-    <p id="celebration" class="celebration">🎉 Great job, Rachel! 🎉</p>
+    <p id="celebration" class="celebration">🎉 You got it! 🎉</p>
   </div>
   <audio id="cheer" src="https://www.fesliyanstudios.com/play-mp3/4380"></audio>
   <script>
-    // Ensure annyang is available
-    if (!annyang) {
-      alert("Sorry, your browser does not support speech recognition via annyang.");
-    }
-
-    // Expanded word list (over 50 words)
-    const words = [
-      "cat", "dog", "sun", "moon", "star", "tree", "house", "car", "boat", "ball",
-      "elephant", "giraffe", "kangaroo", "alligator", "butterfly", "dinosaur", "chocolate", "strawberry", "pineapple", "watermelon",
-      "computer", "keyboard", "notebook", "television", "microwave", "refrigerator", "bicycle", "motorcycle", "airplane", "helicopter",
-      "submarine", "astronaut", "galaxy", "universe", "planet", "comet", "asteroid", "volcano", "hurricane", "tornado",
-      "rainbow", "ocean", "mountain", "river", "forest", "desert", "canyon", "volleyball", "basketball", "baseball",
-      "soccer", "tennis", "guitar", "piano", "violin", "trumpet", "saxophone", "drums", "crocodile", "rhinoceros", "hippopotamus"
-    ];
+    const words = ["cat", "dog", "sun", "moon", "star", "tree", "house", "car", "boat", "ball", "bug", "run", "jump", "play", "fish", "bird", "frog", "book", "cake", "game", "rain", "wind", "sand", "rock", "desk", "lamp", "sock", "hand", "foot", "head", "face", "milk", "juice", "bread", "apple", "grape", "plant", "cloud", "smile", "nose", "ears"];
     let currentWord = "";
     let score = 0;
     let spokenAnswer = "";
@@ -122,25 +108,21 @@
     let timeRemaining = 10;
     let hasChecked = false;
 
-    // Setup annyang command to capture any spoken phrase
     if (annyang) {
       const commands = {
         "*answer": function(answer) {
           spokenAnswer = answer.toLowerCase().trim();
-          console.log("Captured answer:", spokenAnswer);
           document.getElementById("debug").innerText = "Heard: " + spokenAnswer;
         }
       };
       annyang.addCommands(commands);
     }
 
-    // Initialize event listeners after DOM load
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("startButton").addEventListener("click", startGame);
       document.getElementById("checkButton").addEventListener("click", checkAnswer);
     });
 
-    // Start a new round: choose word, announce it, then wait for speech synthesis to finish before listening
     function startGame() {
       hasChecked = false;
       spokenAnswer = "";
@@ -151,42 +133,31 @@
       document.getElementById("timer").style.display = "none";
       document.getElementById("checkButton").style.display = "none";
       document.getElementById("celebration").style.display = "none";
-
       currentWord = words[Math.floor(Math.random() * words.length)];
-      document.getElementById("wordDisplay").innerHTML =
-        `Rachel, spell this word: <span class="word">${currentWord}</span>`;
-
-      // Speak the word and use the onend callback to start listening
-      speakWord(`Rachel, spell the word ${currentWord}`, startListeningAndTimer);
+      document.getElementById("wordDisplay").innerHTML = `Spell: <span class="word">${currentWord}</span>`;
+      speakWord(`Spell the word ${currentWord}`, startListeningAndTimer);
     }
 
-    // Use SpeechSynthesis to speak text, then call a callback on completion
     function speakWord(text, callback) {
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "en-US";
         utterance.onend = function() {
-          // Start listening after the word is fully spoken
           if (callback) callback();
         };
         window.speechSynthesis.speak(utterance);
       } else {
-        console.warn("Speech synthesis not supported in this browser.");
         if (callback) callback();
       }
     }
 
-    // Start the annyang listener and a 10-second countdown timer
     function startListeningAndTimer() {
       document.getElementById("timer").style.display = "block";
       document.getElementById("checkButton").style.display = "inline-block";
       updateTimerDisplay();
-
-      // Start annyang in continuous mode during the 10-second window
       if (annyang) {
         annyang.start({ autoRestart: false, continuous: true });
       }
-
       timerInterval = setInterval(() => {
         timeRemaining--;
         updateTimerDisplay();
@@ -196,42 +167,16 @@
       }, 1000);
     }
 
-    // Update the countdown timer display
     function updateTimerDisplay() {
-      document.getElementById("timer").innerText = "Time remaining: " + timeRemaining + "s";
+      document.getElementById("timer").innerText = "Time: " + timeRemaining + "s";
     }
 
-    // Check the captured spoken answer against the target word
     function checkAnswer() {
       if (hasChecked) return;
       hasChecked = true;
-
       if (annyang) {
         annyang.abort();
       }
       clearInterval(timerInterval);
       document.getElementById("timer").style.display = "none";
-      document.getElementById("checkButton").style.display = "none";
-
-      console.log("Checking answer. Recognized:", spokenAnswer, "Expected:", currentWord);
-      document.getElementById("debug").innerText += "\nFinal: " + spokenAnswer;
-
-      if (spokenAnswer === currentWord) {
-        score++;
-        document.getElementById("result").innerText = "Great job, Rachel! That's correct!";
-        document.getElementById("score").innerText = "Score: " + score;
-        document.getElementById("celebration").style.display = "block";
-        document.getElementById("cheer").play();
-      } else if (spokenAnswer === "") {
-        document.getElementById("result").innerText = "I didn't catch that, Rachel. Try again!";
-        speakWord("I didn't catch that, Rachel. Try again!");
-      } else {
-        document.getElementById("result").innerText = "Almost! Try again, Rachel!";
-        speakWord(`Try again, Rachel! The word is ${currentWord}`);
-      }
-
-      setTimeout(startGame, 3000);
-    }
-  </script>
-</body>
-</html>
+      document.
